@@ -1,0 +1,40 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# ASP.NET Core secrets
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# NuGet packages
+*.nupkg
+packages/
+
+
+# Logs
+*.log
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Cache
+*.cache
+*.vsix
+*.tlog
+*.pdb
+
+# EF Core Migrations snapshot (optional, usually included)
