@@ -38,3 +38,5 @@ Desktop.ini
 *.pdb
 
 # EF Core Migrations snapshot (optional, usually included)
+
+.env

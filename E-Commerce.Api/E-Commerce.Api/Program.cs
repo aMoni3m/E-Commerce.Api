@@ -1,3 +1,6 @@
+using DotNetEnv;
+using E_Commerce.Api.Data;
+using Microsoft.EntityFrameworkCore;
 namespace E_Commerce.Api
 {
     public class Program
@@ -6,7 +9,17 @@ namespace E_Commerce.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+
+            Env.Load();
+
+            var DefualtConnection = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+
+
+            builder.Services.AddDbContext<ApplicationDbContext>(option =>
+            option.UseSqlServer(DefualtConnection));
+
+
+
 
             builder.Services.AddControllers();
 
