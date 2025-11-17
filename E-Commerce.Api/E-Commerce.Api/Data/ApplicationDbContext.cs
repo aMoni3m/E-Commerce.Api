@@ -3,79 +3,72 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Commerce.Api.Data
 {
-    public class ApplicationDbContext :DbContext
+    public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options):
-            base(options) { }
-
-
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) :
+            base(options)
+        { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.BillingAddress)
                 .WithMany()
                 .HasForeignKey(o => o.BillingAddressId)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.ShippingAddress)
                 .WithMany()
                 .HasForeignKey(o => o.ShippingAddressId)
-                .OnDelete(DeleteBehavior.Restrict); 
-            
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Cancellation)
                 .WithOne(c => c.Order)
                 .HasForeignKey<Cancellation>(c => c.OrderId)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Payment>()
                 .HasOne(p => p.Refund)
                 .WithOne(r => r.Payment)
                 .HasForeignKey<Refund>(r => r.PaymentId)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Feedback>()
                 .HasOne(f => f.Customer)
                 .WithMany(c => c.Feedbacks)
                 .HasForeignKey(f => f.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
-            
+
             modelBuilder.Entity<Feedback>()
                 .HasOne(f => f.Product)
                 .WithMany(p => p.Feedbacks)
                 .HasForeignKey(f => f.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-
-
-
-
-
             modelBuilder.Entity<Status>().HasData(
-        
-               new Status { Id = 1, Name = "Pending" }, 
+
+               new Status { Id = 1, Name = "Pending" },
                new Status { Id = 2, Name = "Processing" },
                new Status { Id = 3, Name = "Shipped" },
                new Status { Id = 4, Name = "Delivered" },
                new Status { Id = 5, Name = "Canceled" },
-               
+
                new Status { Id = 6, Name = "Completed" },
                new Status { Id = 7, Name = "Failed" },
-               
+
                new Status { Id = 8, Name = "Approved" },
                new Status { Id = 9, Name = "Rejected" },
-               
+
                new Status { Id = 10, Name = "Refunded" }
            );
-            
+
             modelBuilder.Entity<Category>().HasData(
                 new Category { Id = 1, Name = "Electronics", Description = "Electronic devices and accessories", IsActive = true },
                 new Category { Id = 2, Name = "Books", Description = "Books and magazines", IsActive = true }
             );
-            
+
             modelBuilder.Entity<Product>().HasData(
                 new Product
                 {
@@ -116,7 +109,6 @@ namespace E_Commerce.Api.Data
             );
         }
 
-       
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<Status> Statuses { get; set; }
