@@ -32,4 +32,4 @@ namespace E_Commerce.Api.Models
         public ICollection<Feedback> Feedbacks { get; set; }
     }
 }
-}
+
