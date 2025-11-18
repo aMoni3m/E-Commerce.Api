@@ -1,6 +1,11 @@
 using DotNetEnv;
 using E_Commerce.Api.Data;
+using E_Commerce.Api.Repository;
+using E_Commerce.Api.Repository.Interfaces;
+using E_Commerce.Api.Services;
+using E_Commerce.Api.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+
 namespace E_Commerce.Api
 {
     public class Program
@@ -9,17 +14,18 @@ namespace E_Commerce.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
             Env.Load();
 
             var DefualtConnection = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
 
-
             builder.Services.AddDbContext<ApplicationDbContext>(option =>
             option.UseSqlServer(DefualtConnection));
+            builder.Services.AddScoped<ICustomerService, CustomerService>();
+            builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
-
-
+            builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
             builder.Services.AddControllers();
 
@@ -30,7 +36,6 @@ namespace E_Commerce.Api
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 

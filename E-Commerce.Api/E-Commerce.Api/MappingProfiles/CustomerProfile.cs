@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using E_Commerce.Api.DTOs.CustomerDTOs;
+using E_Commerce.Api.MappingProfiles.Resolvers;
 using E_Commerce.Api.Models;
 
 namespace E_Commerce.Api.MappingProfiles
@@ -8,7 +9,8 @@ namespace E_Commerce.Api.MappingProfiles
     {
         public CustomerProfile()
         {
-            CreateMap<CustomerRegistrationDTO, Customer>();
+            CreateMap<CustomerRegistrationDTO, Customer>().ForMember(
+                dest => dest.Password, opt => opt.MapFrom<PasswordResolver>());
 
             CreateMap<Customer, CustomerResponseDTO>();
 
