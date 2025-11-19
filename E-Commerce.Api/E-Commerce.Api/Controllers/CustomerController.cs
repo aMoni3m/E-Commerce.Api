@@ -21,11 +21,40 @@ namespace E_Commerce.Api.Controllers
         public async Task<IActionResult> CustomerRegistration([FromBody] CustomerRegistrationDTO customerRegistration)
         {
             var response = await _customerService.RegisterCustomer(customerRegistration);
-            if (response.StatusCode != 200)
-            {
-                return StatusCode((int)response.StatusCode, response);
-            }
-            return Ok(response);
+
+            return StatusCode((int)response.StatusCode, response);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetCustomerById([FromRoute] int id)
+        {
+            var response = await _customerService.FindCustomer(id);
+
+            return StatusCode((int)response.StatusCode, response);
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateCustomer([FromBody] CustomerUpdateDTO customerUpdate)
+        {
+            var response = await _customerService.UpdateCustomer(customerUpdate);
+
+            return StatusCode((int)response.StatusCode, response);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> AllCustomer()
+        {
+            var response = await _customerService.AllCustomer();
+
+            return StatusCode((int)response.StatusCode, response);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCustomer([FromRoute] int id)
+        {
+            var response = await _customerService.DeleteCustomer(id);
+
+            return StatusCode((int)response.StatusCode, response);
         }
     }
 }
