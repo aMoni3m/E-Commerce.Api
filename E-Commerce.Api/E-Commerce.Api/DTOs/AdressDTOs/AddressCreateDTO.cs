@@ -1,4 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using E_Commerce.Api.DTOs;
+using E_Commerce.Api.DTOs.AdressDTOs;
+using E_Commerce.Api.Models;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace E_Commerce.Api.DTOs.AdressDTOs
 {

@@ -25,6 +25,9 @@ namespace E_Commerce.Api
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
+            builder.Services.AddScoped<IAddressService, AddressService>();
+            builder.Services.AddScoped<IAddressRepository, AddressRepository>();
+
             builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
             builder.Services.AddControllers();

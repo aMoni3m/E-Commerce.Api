@@ -5,7 +5,7 @@ namespace E_Commerce.Api.DTOs.AdressDTOs
     public class AddressUpdateDTO
     {
         [Required(ErrorMessage = "AddressId is required.")]
-        public int AddressId { get; set; }
+        public int Id { get; set; }
 
         [Required(ErrorMessage = "CustomerId is required.")]
         public int CustomerId { get; set; }
