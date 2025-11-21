@@ -96,8 +96,6 @@ namespace E_Commerce.Api.Services
 
                 _mapper.Map(addressUpdateDTO, address);
 
-                Console.WriteLine(address.ToString());
-
                 await _addressRepository.UpdateAddressAsync(address);
                 var confirmationMessage = new ConfirmationResponseDTO
                 {
