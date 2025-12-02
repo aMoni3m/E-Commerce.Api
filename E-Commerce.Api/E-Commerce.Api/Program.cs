@@ -31,6 +31,9 @@ namespace E_Commerce.Api
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 
+            builder.Services.AddScoped<IProductRepository, ProductRepository>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+
             builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
             builder.Services.AddControllers();
