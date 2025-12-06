@@ -1,6 +1,4 @@
-﻿using E_Commerce.Api.Models;
-
-namespace E_Commerce.Api.DTOs.OrderDTOs
+﻿namespace E_Commerce.Api.DTOs.OrderDTOs
 {
     public class OrderResponseDTO
     {
@@ -14,7 +12,7 @@ namespace E_Commerce.Api.DTOs.OrderDTOs
         public decimal TotalDiscountAmount { get; set; }
         public decimal ShippingCost { get; set; }
         public decimal TotalAmount { get; set; }
-        public OrderStatus OrderStatus { get; set; }
+        public string OrderStatus { get; set; }
         public List<OrderItemResponseDTO> OrderItems { get; set; }
     }
 }
