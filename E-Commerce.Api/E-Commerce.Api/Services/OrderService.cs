@@ -111,6 +111,13 @@ namespace E_Commerce.Api.Services
                 var savedOrder = await _orderRepository.GetOrderByIdAsync(order.Id);
 
                 var orderResponse = _mapper.Map<OrderResponseDTO>(savedOrder);
+                var cart = await _orderRepository.GetActiveCartByCustomerIdAsync(orderDto.CustomerId);
+                if (cart != null)
+                {
+                    cart.IsCheckedOut = true;
+                    cart.UpdatedAt = DateTime.UtcNow;
+                    await _orderRepository.UpdateCartAsync(cart);
+                }
 
                 return new ApiResponse<OrderResponseDTO>(200, orderResponse);
             }

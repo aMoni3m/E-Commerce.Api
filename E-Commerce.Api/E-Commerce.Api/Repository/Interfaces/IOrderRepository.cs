@@ -15,6 +15,7 @@ namespace E_Commerce.Api.Repository.Interfaces
         Task<Product> GetProductByIdAsync(int productId);
         Task UpdateProductAsync(Product product);
         Task<Cart> GetActiveCartByCustomerIdAsync(int customerId);
+        Task UpdateCartAsync(Cart cart);
     }
 }
 

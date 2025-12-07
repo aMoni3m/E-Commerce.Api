@@ -95,6 +95,12 @@ namespace E_Commerce.Api.Repository
                 .FirstOrDefaultAsync(c => c.CustomerId == customerId && !c.IsCheckedOut);
         }
 
+        public async Task UpdateCartAsync(Cart cart)
+        {
+            _context.Carts.Update(cart);
+            await _context.SaveChangesAsync();
+        }
+
     }
 }
 
