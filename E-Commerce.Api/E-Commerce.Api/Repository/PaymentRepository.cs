@@ -21,6 +21,34 @@ namespace E_Commerce.Api.Repository
                 .FirstOrDefaultAsync(o => o.Id == orderId && o.CustomerId == customerId);
         }
 
+        public async Task<Payment> GetPaymentByIdAsync(int paymentId)
+        {
+            return await _context.Payments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == paymentId);
+        }
+
+        public async Task<Payment> GetPaymentByOrderIdAsync(int orderId)
+        {
+            return await _context.Payments
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.OrderId == orderId);
+        }
+
+        public async Task<Payment> GetPaymentWithOrderAsync(int paymentId)
+        {
+            return await _context.Payments
+                .Include(p => p.Order)
+                .FirstOrDefaultAsync(p => p.Id == paymentId);
+        }
+
+        public async Task<Payment> GetPaymentWithOrderByOrderIdAsync(int paymentId, int orderId)
+        {
+            return await _context.Payments
+                .Include(p => p.Order)
+                .FirstOrDefaultAsync(p => p.Id == paymentId && p.OrderId == orderId);
+        }
+
         public async Task<Payment> CreatePaymentAsync(Payment payment)
         {
             await _context.Payments.AddAsync(payment);
