@@ -43,6 +43,9 @@ namespace E_Commerce.Api
             builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
 
+            builder.Services.AddScoped<ICancellationRepository, CancellationRepository>();
+            builder.Services.AddScoped<ICancellationService, CancellationService>();
+
             builder.Services.AddScoped<IEmailService, EmailServer>();
 
             builder.Services.AddAutoMapper(typeof(Program).Assembly);
@@ -50,8 +53,6 @@ namespace E_Commerce.Api
             builder.Services.AddControllers();
 
             var app = builder.Build();
-
-            // Configure the HTTP request pipeline.
 
             app.UseHttpsRedirection();
 
