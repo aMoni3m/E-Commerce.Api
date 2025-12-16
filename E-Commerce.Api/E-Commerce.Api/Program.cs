@@ -46,6 +46,9 @@ namespace E_Commerce.Api
             builder.Services.AddScoped<ICancellationRepository, CancellationRepository>();
             builder.Services.AddScoped<ICancellationService, CancellationService>();
 
+            builder.Services.AddScoped<IRefundRepository, RefundRepository>();
+            builder.Services.AddScoped<IRefundService, RefundService>();
+
             builder.Services.AddScoped<IEmailService, EmailServer>();
 
             builder.Services.AddAutoMapper(typeof(Program).Assembly);
