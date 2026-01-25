@@ -4,7 +4,11 @@ using E_Commerce.Api.Repository;
 using E_Commerce.Api.Repository.Interfaces;
 using E_Commerce.Api.Services;
 using E_Commerce.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 
 namespace E_Commerce.Api
 {
@@ -15,11 +19,38 @@ namespace E_Commerce.Api
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Enter 'Bearer {token}'"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+            });
 
             Env.Load();
 
             var DefualtConnection = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
+            var secretKey = Environment.GetEnvironmentVariable("SecretKey");
 
             builder.Services.AddDbContext<ApplicationDbContext>(option =>
             option.UseSqlServer(DefualtConnection));
@@ -57,6 +88,23 @@ namespace E_Commerce.Api
 
             builder.Services.AddControllers();
 
+            builder.Services.AddAuthentication(
+
+                options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                }).AddJwtBearer(options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!))
+                    };
+                });
+
             var app = builder.Build();
 
             app.UseSwagger();
@@ -64,6 +112,7 @@ namespace E_Commerce.Api
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
