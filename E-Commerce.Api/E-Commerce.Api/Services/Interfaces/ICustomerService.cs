@@ -11,7 +11,7 @@ namespace E_Commerce.Api.Services.Interfaces
 
         Task<ApiResponse<ConfirmationResponseDTO>> UpdateCustomer(CustomerUpdateDTO customerUpdateDTO);
 
-        Task<ApiResponse<List<CustomerResponseDTO>>> AllCustomer();
+        Task<ApiResponse<PaginatedResultDto<CustomerResponseDTO>>> AllCustomer(int pageSize, int pageNumber);
 
         Task<ApiResponse<ConfirmationResponseDTO>> DeleteCustomer(int id);
     }

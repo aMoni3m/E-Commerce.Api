@@ -1,4 +1,5 @@
-﻿using E_Commerce.Api.DTOs.CustomerDTOs;
+﻿using E_Commerce.Api.DTOs;
+using E_Commerce.Api.DTOs.CustomerDTOs;
 using E_Commerce.Api.Models;
 
 namespace E_Commerce.Api.Repository.Interfaces
@@ -13,7 +14,7 @@ namespace E_Commerce.Api.Repository.Interfaces
 
         Task Update(Customer customer);
 
-        Task<List<Customer>> AllCustomer();
+        Task<PaginatedResultDto<CustomerResponseDTO>> AllCustomer(int pageSize, int pageNumber);
 
         Task DeleteCustoemr(int id);
     }

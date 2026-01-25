@@ -1,4 +1,5 @@
-﻿using E_Commerce.Api.DTOs.CustomerDTOs;
+﻿using E_Commerce.Api.DTOs;
+using E_Commerce.Api.DTOs.CustomerDTOs;
 using E_Commerce.Api.Services;
 using E_Commerce.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -44,10 +45,10 @@ namespace E_Commerce.Api.Controllers
             return StatusCode((int)response.StatusCode, response);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> AllCustomer()
+        [HttpGet("pageSize/{pageSize}/pageNumber/{pageNumber}")]
+        public async Task<IActionResult> AllCustomer(int pageSize = 10, int pageNumber = 1)
         {
-            var response = await _customerService.AllCustomer();
+            var response = await _customerService.AllCustomer(pageSize, pageNumber);
 
             return StatusCode((int)response.StatusCode, response);
         }

@@ -19,19 +19,19 @@ namespace E_Commerce.Api.Services
             _mapper = mapper;
         }
 
-        public async Task<ApiResponse<List<CustomerResponseDTO>>> AllCustomer()
+        public async Task<ApiResponse<PaginatedResultDto<CustomerResponseDTO>>> AllCustomer(int pageSize, int pageNumber)
         {
             try
             {
-                List<Customer> Customers = await _customerRepository.AllCustomer();
+                PaginatedResultDto<CustomerResponseDTO> Customers = await _customerRepository.AllCustomer(pageSize, pageNumber);
 
-                List<CustomerResponseDTO> customersDTO = _mapper.Map<List<CustomerResponseDTO>>(Customers);
+                // List<CustomerResponseDTO> customersDTO = _mapper.Map<List<CustomerResponseDTO>>(Customers);
 
-                return new ApiResponse<List<CustomerResponseDTO>>(200, customersDTO);
+                return new ApiResponse<PaginatedResultDto<CustomerResponseDTO>>(200, Customers);
             }
             catch (Exception ex)
             {
-                return new ApiResponse<List<CustomerResponseDTO>>(500,
+                return new ApiResponse<PaginatedResultDto<CustomerResponseDTO>>(500,
                      $"An unexpected error occurred while processing your request, Error: {ex.Message}");
             }
         }

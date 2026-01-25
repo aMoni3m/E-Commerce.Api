@@ -1,4 +1,8 @@
-﻿using E_Commerce.Api.Data;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using E_Commerce.Api.Data;
+using E_Commerce.Api.DTOs;
+using E_Commerce.Api.DTOs.CustomerDTOs;
 using E_Commerce.Api.Models;
 using E_Commerce.Api.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -8,10 +12,12 @@ namespace E_Commerce.Api.Repository
     public class CustomerRepository : ICustomerRepository
     {
         private readonly ApplicationDbContext _context;
+        private readonly IMapper _mapper;
 
-        public CustomerRepository(ApplicationDbContext context)
+        public CustomerRepository(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<bool> GetCustomerByEmail(string email)
@@ -40,10 +46,24 @@ namespace E_Commerce.Api.Repository
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<Customer>> AllCustomer()
+        public async Task<PaginatedResultDto<CustomerResponseDTO>> AllCustomer(
+            int pageSize,
+            int pageNumber
+            )
         {
-            List<Customer> result = await _context.Customers.AsNoTracking().ToListAsync();
-            return result;
+            var totalcount = await _context.Customers.CountAsync();
+            var query = _context.Customers.AsNoTracking();
+
+            var items = await query
+                .OrderBy(p => p.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ProjectTo<CustomerResponseDTO>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
+            return new PaginatedResultDto<CustomerResponseDTO>(
+                pageNumber, pageSize, totalcount, items
+                );
         }
 
         public async Task DeleteCustoemr(int id)
