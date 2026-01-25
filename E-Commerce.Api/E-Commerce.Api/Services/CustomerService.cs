@@ -43,7 +43,7 @@ namespace E_Commerce.Api.Services
                 await _customerRepository.DeleteCustoemr(id);
                 var confirmationMessage = new ConfirmationResponseDTO
                 {
-                    Message = $"Customer with Id {id} updated successfully."
+                    Message = $"Customer with Id {id} deleted successfully."
                 };
                 return new ApiResponse<ConfirmationResponseDTO>(200, confirmationMessage);
             }

@@ -14,7 +14,8 @@ namespace E_Commerce.Api
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
 
             Env.Load();
 
@@ -22,6 +23,7 @@ namespace E_Commerce.Api
 
             builder.Services.AddDbContext<ApplicationDbContext>(option =>
             option.UseSqlServer(DefualtConnection));
+
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
@@ -56,6 +58,9 @@ namespace E_Commerce.Api
             builder.Services.AddControllers();
 
             var app = builder.Build();
+
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
 
