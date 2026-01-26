@@ -4,6 +4,7 @@ using E_Commerce.Api.DTOs.ProductDTOs;
 using E_Commerce.Api.Models;
 using E_Commerce.Api.Repository.Interfaces;
 using E_Commerce.Api.Services.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace E_Commerce.Api.Services
 {
@@ -11,11 +12,14 @@ namespace E_Commerce.Api.Services
     {
         private readonly IProductRepository _productRepo;
         private readonly IMapper _mapper;
+        private readonly IMemoryCache _cache;
+        private readonly TimeSpan _timeOut = TimeSpan.FromMinutes(30);
 
-        public ProductService(IProductRepository productRepo, IMapper mapper)
+        public ProductService(IProductRepository productRepo, IMapper mapper, IMemoryCache cache)
         {
             _productRepo = productRepo;
             _mapper = mapper;
+            _cache = cache;
         }
 
         public async Task<ApiResponse<ProductResponseDTO>> CreateProductAsync(ProductCreateDTO dto)
@@ -75,11 +79,20 @@ namespace E_Commerce.Api.Services
 
         public async Task<ApiResponse<List<ProductResponseDTO>>> GetProductsByCategoryAsync(int categoryId)
         {
+            string cacheKey = $"categoryId_{categoryId}";
+            MemoryCacheEntryOptions options = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(_timeOut)
+                .SetPriority(CacheItemPriority.Normal);
+
             try
             {
-                var products = await _productRepo.GetProductsByCategoryAsync(categoryId);
-                if (!products.Any())
-                    return new ApiResponse<List<ProductResponseDTO>>(404, "No products found.");
+                if (!_cache.TryGetValue(cacheKey, out var products))
+                {
+                    products = await _productRepo.GetProductsByCategoryAsync(categoryId);
+                    if (products == null)
+                        return new ApiResponse<List<ProductResponseDTO>>(404, "No products found.");
+                    _cache.Set(cacheKey, products, options);
+                }
 
                 return new ApiResponse<List<ProductResponseDTO>>(200,
                     _mapper.Map<List<ProductResponseDTO>>(products));

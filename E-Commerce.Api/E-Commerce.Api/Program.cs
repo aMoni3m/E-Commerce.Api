@@ -84,6 +84,8 @@ namespace E_Commerce.Api
 
             builder.Services.AddScoped<IEmailService, EmailServer>();
 
+            builder.Services.AddMemoryCache();
+
             builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
             builder.Services.AddControllers();
