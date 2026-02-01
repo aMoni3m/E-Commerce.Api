@@ -10,25 +10,25 @@ namespace E_Commerce.Api.Services
 {
     public class CategoryService : ICategoryService
     {
-        private readonly ICategoryRepository _categoryRepository;
         private readonly IMapper _mapper;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public CategoryService(ICategoryRepository categoryRepository, IMapper mapper)
+        public CategoryService(IMapper mapper, IUnitOfWork unitOfWork)
         {
-            _categoryRepository = categoryRepository;
             _mapper = mapper;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<ApiResponse<CategoryResponseDTO>> CreateCategoryAsync(CategoryCreateDTO categoryCreateDTO)
         {
             try
             {
-                if (await _categoryRepository.CategoryIsExistAsync(categoryCreateDTO.Name))
+                if (await _unitOfWork.Categorys.CategoryIsExistAsync(categoryCreateDTO.Name))
                     return new ApiResponse<CategoryResponseDTO>(400, "Category already exist");
 
                 Category category = _mapper.Map<Category>(categoryCreateDTO);
-                await _categoryRepository.CreateAsync(category);
-                await _categoryRepository.SaveAsync();
+                await _unitOfWork.Categorys.CreateAsync(category);
+                await _unitOfWork.SaveChangesAsync();
                 CategoryResponseDTO categoryResponseDTO = _mapper.Map<CategoryResponseDTO>(category);
                 return new ApiResponse<CategoryResponseDTO>(201, categoryResponseDTO);
             }
@@ -43,11 +43,11 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                Category category = await _categoryRepository.GetCategoryByIdAsync(id);
+                Category category = await _unitOfWork.Categorys.GetCategoryByIdAsync(id);
                 if (category == null)
                     return new ApiResponse<ConfirmationResponseDTO>(400, "Category not found");
-                _categoryRepository.Delete(category);
-                await _categoryRepository.SaveAsync();
+                _unitOfWork.Categorys.Delete(category);
+                await _unitOfWork.SaveChangesAsync();
 
                 return new ApiResponse<ConfirmationResponseDTO>(204, "");
             }
@@ -62,7 +62,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                List<Category> categories = await _categoryRepository.GetAllAsync();
+                List<Category> categories = await _unitOfWork.Categorys.GetAllAsync();
                 if (categories == null)
                     return new ApiResponse<List<CategoryResponseDTO>>(400, "categories not found");
 
@@ -83,7 +83,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                Category category = await _categoryRepository.GetCategoryByIdAsync(id);
+                Category category = await _unitOfWork.Categorys.GetCategoryByIdAsync(id);
                 if (category == null)
                     return new ApiResponse<CategoryResponseDTO>(400, "Category not found");
 
@@ -102,12 +102,12 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                Category category = await _categoryRepository.GetCategoryByIdAsync(categoryUpdateDTO.Id);
+                Category category = await _unitOfWork.Categorys.GetCategoryByIdAsync(categoryUpdateDTO.Id);
                 if (category == null)
                     return new ApiResponse<ConfirmationResponseDTO>(400, "Category not found");
                 _mapper.Map(categoryUpdateDTO, category);
-                _categoryRepository.Update(category);
-                await _categoryRepository.SaveAsync();
+                _unitOfWork.Categorys.Update(category);
+                await _unitOfWork.SaveChangesAsync();
                 var confirmationMessage = new ConfirmationResponseDTO
                 {
                     Message = $"Address with Id {categoryUpdateDTO.Id} updated successfully."

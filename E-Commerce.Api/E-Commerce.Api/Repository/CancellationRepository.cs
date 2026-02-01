@@ -64,27 +64,19 @@ namespace E_Commerce.Api.Repository
                 .ToListAsync();
         }
 
-        public async Task UpdateCancellationAsync(Cancellation cancellation)
+        public void UpdateCancellationAsync(Cancellation cancellation)
         {
             _context.Cancellations.Update(cancellation);
-            await Task.CompletedTask;
         }
 
-        public async Task UpdateOrderAsync(Order order)
+        public void UpdateOrderAsync(Order order)
         {
             _context.Orders.Update(order);
-            await Task.CompletedTask;
         }
 
-        public async Task UpdateProductAsync(Product product)
+        public void UpdateProductAsync(Product product)
         {
             _context.Products.Update(product);
-            await Task.CompletedTask;
-        }
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
         }
     }
 }

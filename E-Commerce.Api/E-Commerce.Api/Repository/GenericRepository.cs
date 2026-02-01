@@ -6,13 +6,11 @@ namespace E_Commerce.Api.Repository
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
-        private readonly ApplicationDbContext _context;
         private readonly DbSet<T> _dbSet;
 
         public GenericRepository(ApplicationDbContext context)
         {
             _dbSet = context.Set<T>();
-            _context = context;
         }
 
         public async Task CreateAsync(T data)
@@ -33,11 +31,6 @@ namespace E_Commerce.Api.Repository
         public void Update(T data)
         {
             _dbSet.Update(data);
-        }
-
-        public async Task SaveAsync()
-        {
-            await _context.SaveChangesAsync();
         }
     }
 }

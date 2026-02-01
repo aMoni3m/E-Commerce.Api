@@ -11,14 +11,15 @@ namespace E_Commerce.Api.Services
 {
     public class RefundService : IRefundService
     {
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ApplicationDbContext _context;
-        private readonly IRefundRepository _refundRepository;
         private readonly RefundEmailHelper _emailHelper;
 
-        public RefundService(ApplicationDbContext context, IRefundRepository refundRepository, IEmailService emailService)
+        public RefundService(ApplicationDbContext context, IUnitOfWork unitOfWork, IEmailService emailService)
         {
             _context = context;
-            _refundRepository = refundRepository;
+            _unitOfWork = unitOfWork;
+
             _emailHelper = new RefundEmailHelper(emailService);
         }
 
@@ -26,7 +27,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var eligible = await _refundRepository.GetEligibleCancellationsForRefundAsync();
+                var eligible = await _unitOfWork.Refunds.GetEligibleCancellationsForRefundAsync();
 
                 var result = eligible.Select(c => new PendingRefundResponseDTO
                 {
@@ -50,7 +51,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var cancellation = await _refundRepository.GetCancellationWithOrderPaymentAndCustomerAsync(refundRequest.CancellationId);
+                var cancellation = await _unitOfWork.Refunds.GetCancellationWithOrderPaymentAndCustomerAsync(refundRequest.CancellationId);
 
                 if (cancellation == null)
                 {
@@ -62,7 +63,7 @@ namespace E_Commerce.Api.Services
                     return new ApiResponse<RefundResponseDTO>(400, "Only approved cancellations are eligible for refunds.");
                 }
 
-                var existingRefund = await _refundRepository.GetRefundByCancellationIdAsync(refundRequest.CancellationId);
+                var existingRefund = await _unitOfWork.Refunds.GetRefundByCancellationIdAsync(refundRequest.CancellationId);
 
                 if (existingRefund != null)
                 {
@@ -95,8 +96,8 @@ namespace E_Commerce.Api.Services
                     ProcessedBy = refundRequest.ProcessedBy
                 };
 
-                await _refundRepository.CreateRefundAsync(refund);
-                await _refundRepository.SaveChangesAsync();
+                await _unitOfWork.Refunds.CreateRefundAsync(refund);
+                await _unitOfWork.SaveChangesAsync();
 
                 var gatewayResponse = await ProcessRefundPaymentAsync(refund);
 
@@ -107,9 +108,9 @@ namespace E_Commerce.Api.Services
                     refund.CompletedAt = DateTime.UtcNow;
                     payment.Status = PaymentStatus.Refunded;
 
-                    await _refundRepository.UpdateRefundAsync(refund);
-                    await _refundRepository.UpdatePaymentAsync(payment);
-                    await _refundRepository.SaveChangesAsync();
+                    _unitOfWork.Refunds.UpdateRefundAsync(refund);
+                    _unitOfWork.Refunds.UpdatePaymentAsync(payment);
+                    await _unitOfWork.SaveChangesAsync();
 
                     if (cancellation.Order.Customer != null && !string.IsNullOrEmpty(cancellation.Order.Customer.Email))
                     {
@@ -123,8 +124,8 @@ namespace E_Commerce.Api.Services
                 else
                 {
                     refund.Status = RefundStatus.Failed;
-                    await _refundRepository.UpdateRefundAsync(refund);
-                    await _refundRepository.SaveChangesAsync();
+                    _unitOfWork.Refunds.UpdateRefundAsync(refund);
+                    await _unitOfWork.SaveChangesAsync();
                 }
 
                 return new ApiResponse<RefundResponseDTO>(200, MapRefundToDTO(refund));
@@ -139,7 +140,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var refund = await _refundRepository.GetRefundWithDetailsAsync(statusUpdate.RefundId);
+                var refund = await _unitOfWork.Refunds.GetRefundWithDetailsAsync(statusUpdate.RefundId);
 
                 if (refund == null)
                 {
@@ -160,9 +161,9 @@ namespace E_Commerce.Api.Services
 
                 refund.Payment.Status = PaymentStatus.Refunded;
 
-                await _refundRepository.UpdateRefundAsync(refund);
-                await _refundRepository.UpdatePaymentAsync(refund.Payment);
-                await _refundRepository.SaveChangesAsync();
+                _unitOfWork.Refunds.UpdateRefundAsync(refund);
+                _unitOfWork.Refunds.UpdatePaymentAsync(refund.Payment);
+                await _unitOfWork.SaveChangesAsync();
 
                 if (refund.Cancellation?.Order?.Customer != null && !string.IsNullOrEmpty(refund.Cancellation.Order.Customer.Email))
                 {
@@ -190,7 +191,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var refund = await _refundRepository.GetRefundByIdAsync(id);
+                var refund = await _unitOfWork.Refunds.GetRefundByIdAsync(id);
 
                 if (refund == null)
                 {
@@ -209,7 +210,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var refunds = await _refundRepository.GetAllRefundsAsync();
+                var refunds = await _unitOfWork.Refunds.GetAllRefundsAsync();
 
                 var refundList = refunds.Select(r => MapRefundToDTO(r)).ToList();
 
@@ -274,6 +275,6 @@ namespace E_Commerce.Api.Services
             }
         }
 
-        #endregion
+        #endregion Helper Methods
     }
 }

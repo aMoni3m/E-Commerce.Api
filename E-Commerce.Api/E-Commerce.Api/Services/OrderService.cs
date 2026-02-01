@@ -10,7 +10,7 @@ namespace E_Commerce.Api.Services
 {
     public class OrderService : IOrderService
     {
-        private readonly IOrderRepository _orderRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
         private static readonly Dictionary<OrderStatus, List<OrderStatus>> AllowedStatusTransitions = new()
@@ -18,13 +18,13 @@ namespace E_Commerce.Api.Services
             { OrderStatus.Pending, new List<OrderStatus> { OrderStatus.Processing, OrderStatus.Canceled } },
             { OrderStatus.Processing, new List<OrderStatus> { OrderStatus.Shipped, OrderStatus.Canceled } },
             { OrderStatus.Shipped, new List<OrderStatus> { OrderStatus.Delivered } },
-            { OrderStatus.Delivered, new List<OrderStatus>() }, 
-            { OrderStatus.Canceled, new List<OrderStatus>() }   
+            { OrderStatus.Delivered, new List<OrderStatus>() },
+            { OrderStatus.Canceled, new List<OrderStatus>() }
         };
 
-        public OrderService(IOrderRepository orderRepository, IMapper mapper)
+        public OrderService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _orderRepository = orderRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
@@ -32,19 +32,19 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var customer = await _orderRepository.GetCustomerByIdAsync(orderDto.CustomerId);
+                var customer = await _unitOfWork.Orders.GetCustomerByIdAsync(orderDto.CustomerId);
                 if (customer == null)
                 {
                     return new ApiResponse<OrderResponseDTO>(404, "Customer does not exist.");
                 }
 
-                var billingAddress = await _orderRepository.GetAddressByIdAsync(orderDto.BillingAddressId);
+                var billingAddress = await _unitOfWork.Orders.GetAddressByIdAsync(orderDto.BillingAddressId);
                 if (billingAddress == null || billingAddress.CustomerId != orderDto.CustomerId)
                 {
                     return new ApiResponse<OrderResponseDTO>(400, "Billing Address is invalid or does not belong to the customer.");
                 }
 
-                var shippingAddress = await _orderRepository.GetAddressByIdAsync(orderDto.ShippingAddressId);
+                var shippingAddress = await _unitOfWork.Orders.GetAddressByIdAsync(orderDto.ShippingAddressId);
                 if (shippingAddress == null || shippingAddress.CustomerId != orderDto.CustomerId)
                 {
                     return new ApiResponse<OrderResponseDTO>(400, "Shipping Address is invalid or does not belong to the customer.");
@@ -52,7 +52,7 @@ namespace E_Commerce.Api.Services
 
                 decimal totalBaseAmount = 0;
                 decimal totalDiscountAmount = 0;
-                decimal shippingCost = 10.00m; 
+                decimal shippingCost = 10.00m;
                 decimal totalAmount = 0;
 
                 string orderNumber = GenerateOrderNumber();
@@ -61,7 +61,7 @@ namespace E_Commerce.Api.Services
 
                 foreach (var itemDto in orderDto.OrderItems)
                 {
-                    var product = await _orderRepository.GetProductByIdAsync(itemDto.ProductId);
+                    var product = await _unitOfWork.Orders.GetProductByIdAsync(itemDto.ProductId);
                     if (product == null)
                     {
                         return new ApiResponse<OrderResponseDTO>(404, $"Product with ID {itemDto.ProductId} does not exist.");
@@ -86,7 +86,7 @@ namespace E_Commerce.Api.Services
                     totalDiscountAmount += discount;
 
                     product.StockQuantity -= itemDto.Quantity;
-                    await _orderRepository.UpdateProductAsync(product);
+                    await _unitOfWork.Orders.UpdateProductAsync(product);
                 }
 
                 totalAmount = totalBaseAmount - totalDiscountAmount + shippingCost;
@@ -106,18 +106,18 @@ namespace E_Commerce.Api.Services
                     OrderItems = orderItems
                 };
 
-                await _orderRepository.CreateOrderAsync(order);
+                await _unitOfWork.Orders.CreateOrderAsync(order);
 
-                var savedOrder = await _orderRepository.GetOrderByIdAsync(order.Id);
+                var savedOrder = await _unitOfWork.Orders.GetOrderByIdAsync(order.Id);
 
                 var orderResponse = _mapper.Map<OrderResponseDTO>(savedOrder);
-                var cart = await _orderRepository.GetActiveCartByCustomerIdAsync(orderDto.CustomerId);
+                var cart = await _unitOfWork.Orders.GetActiveCartByCustomerIdAsync(orderDto.CustomerId);
                 if (cart != null)
                 {
                     cart.IsCheckedOut = true;
                     cart.UpdatedAt = DateTime.UtcNow;
-                    await _orderRepository.UpdateCartAsync(cart);
-                }
+                    await _unitOfWork.Orders.UpdateCartAsync(cart);
+                }
 
                 return new ApiResponse<OrderResponseDTO>(200, orderResponse);
             }
@@ -131,7 +131,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var order = await _orderRepository.GetOrderByIdAsync(orderId);
+                var order = await _unitOfWork.Orders.GetOrderByIdAsync(orderId);
 
                 if (order == null)
                 {
@@ -152,7 +152,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var order = await _orderRepository.GetOrderByIdAsync(statusDto.OrderId);
+                var order = await _unitOfWork.Orders.GetOrderByIdAsync(statusDto.OrderId);
                 if (order == null)
                 {
                     return new ApiResponse<ConfirmationResponseDTO>(404, "Order not found.");
@@ -172,7 +172,7 @@ namespace E_Commerce.Api.Services
                 }
 
                 order.OrderStatus = newStatus;
-                await _orderRepository.UpdateOrderAsync(order);
+                await _unitOfWork.Orders.UpdateOrderAsync(order);
 
                 var confirmation = new ConfirmationResponseDTO
                 {
@@ -191,7 +191,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var orders = await _orderRepository.GetAllOrdersAsync();
+                var orders = await _unitOfWork.Orders.GetAllOrdersAsync();
                 var orderList = _mapper.Map<List<OrderResponseDTO>>(orders);
                 return new ApiResponse<List<OrderResponseDTO>>(200, orderList);
             }
@@ -205,12 +205,12 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var customer = await _orderRepository.GetCustomerByIdAsync(customerId);
+                var customer = await _unitOfWork.Orders.GetCustomerByIdAsync(customerId);
                 if (customer == null)
                 {
                     return new ApiResponse<List<OrderResponseDTO>>(404, "Customer not found.");
                 }
-                var orders = await _orderRepository.GetOrdersByCustomerIdAsync(customerId);
+                var orders = await _unitOfWork.Orders.GetOrdersByCustomerIdAsync(customerId);
                 var orderList = _mapper.Map<List<OrderResponseDTO>>(orders);
 
                 return new ApiResponse<List<OrderResponseDTO>>(200, orderList);
@@ -221,17 +221,16 @@ namespace E_Commerce.Api.Services
             }
         }
 
-
         public async Task<ApiResponse<ConfirmationResponseDTO>> DeleteOrderAsync(int orderId)
         {
             try
             {
-                var order = await _orderRepository.GetOrderByIdAsync(orderId);
+                var order = await _unitOfWork.Orders.GetOrderByIdAsync(orderId);
                 if (order == null)
                 {
                     return new ApiResponse<ConfirmationResponseDTO>(404, "Order not found.");
                 }
-                await _orderRepository.DeleteOrderAsync(order);
+                await _unitOfWork.Orders.DeleteOrderAsync(order);
                 var confirmation = new ConfirmationResponseDTO
                 {
                     Message = $"Order with Id {orderId} deleted successfully."
@@ -246,7 +245,7 @@ namespace E_Commerce.Api.Services
         }
 
         #region Helper Methods
-        
+
         private string GenerateOrderNumber()
         {
             return $"ORD-{DateTime.UtcNow.ToString("yyyyMMdd-HHmmss")}-{RandomNumber(1000, 9999)}";
@@ -261,6 +260,7 @@ namespace E_Commerce.Api.Services
                 return Math.Abs(BitConverter.ToInt32(bytes, 0) % (max - min + 1)) + min;
             }
         }
-        #endregion
+
+        #endregion Helper Methods
     }
 }

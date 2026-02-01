@@ -12,112 +12,110 @@ namespace E_Commerce.Api.Services
     public class PaymentService : IPaymentService
     {
         private readonly IEmailService _emailService;
-        private readonly IPaymentRepository _paymentRepository;
-        private readonly ApplicationDbContext _context;
-        private readonly PaymentEmailHelper _emailHelper;
 
-        public PaymentService(IEmailService emailService, IPaymentRepository paymentRepository, ApplicationDbContext context)
+        private readonly PaymentEmailHelper _emailHelper;
+        private readonly IUnitOfWork _unitOfWork;
+
+        public PaymentService(IEmailService emailService, IUnitOfWork unitOfWork, ApplicationDbContext context)
         {
             _emailService = emailService;
-            _paymentRepository = paymentRepository;
-            _context = context;
-            _emailHelper = new PaymentEmailHelper(_emailService, _context);
+            _unitOfWork = unitOfWork;
+
+            _emailHelper = new PaymentEmailHelper(_emailService, context);
         }
 
         public async Task<ApiResponse<PaymentResponseDTO>> ProcessPaymentAsync(PaymentRequestDTO paymentRequest)
         {
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                try
+                var order = await _unitOfWork.Payments.GetOrderWithPaymentAsync(paymentRequest.OrderId, paymentRequest.CustomerId);
+
+                if (order == null)
                 {
-                    var order = await _paymentRepository.GetOrderWithPaymentAsync(paymentRequest.OrderId, paymentRequest.CustomerId);
+                    return new ApiResponse<PaymentResponseDTO>(404, "Order not found.");
+                }
 
-                    if (order == null)
+                if (Math.Round(paymentRequest.Amount, 2) != Math.Round(order.TotalAmount, 2))
+                {
+                    return new ApiResponse<PaymentResponseDTO>(400, "Payment amount does not match the order total.");
+                }
+
+                Payment payment;
+
+                if (order.Payment != null)
+                {
+                    if (order.Payment.Status == PaymentStatus.Failed && order.OrderStatus == OrderStatus.Pending)
                     {
-                        return new ApiResponse<PaymentResponseDTO>(404, "Order not found.");
-                    }
-
-                    if (Math.Round(paymentRequest.Amount, 2) != Math.Round(order.TotalAmount, 2))
-                    {
-                        return new ApiResponse<PaymentResponseDTO>(400, "Payment amount does not match the order total.");
-                    }
-
-                    Payment payment;
-
-                    if (order.Payment != null)
-                    {
-                        if (order.Payment.Status == PaymentStatus.Failed && order.OrderStatus == OrderStatus.Pending)
-                        {
-                            payment = order.Payment;
-                            payment.PaymentMethod = paymentRequest.PaymentMethod;
-                            payment.Amount = paymentRequest.Amount;
-                            payment.PaymentDate = DateTime.UtcNow;
-                            payment.Status = PaymentStatus.Pending;
-                            payment.TransactionId = null;
-                            await _paymentRepository.UpdatePaymentAsync(payment);
-                        }
-                        else
-                        {
-                            return new ApiResponse<PaymentResponseDTO>(400, "Order already has an associated payment.");
-                        }
+                        payment = order.Payment;
+                        payment.PaymentMethod = paymentRequest.PaymentMethod;
+                        payment.Amount = paymentRequest.Amount;
+                        payment.PaymentDate = DateTime.UtcNow;
+                        payment.Status = PaymentStatus.Pending;
+                        payment.TransactionId = null;
+                        await _unitOfWork.Payments.UpdatePaymentAsync(payment);
                     }
                     else
                     {
-                        payment = new Payment
-                        {
-                            OrderId = paymentRequest.OrderId,
-                            PaymentMethod = paymentRequest.PaymentMethod,
-                            Amount = paymentRequest.Amount,
-                            PaymentDate = DateTime.UtcNow,
-                            Status = PaymentStatus.Pending
-                        };
-
-                        await _paymentRepository.CreatePaymentAsync(payment);
+                        return new ApiResponse<PaymentResponseDTO>(400, "Order already has an associated payment.");
                     }
-
-                    if (!IsCashOnDelivery(paymentRequest.PaymentMethod))
+                }
+                else
+                {
+                    payment = new Payment
                     {
-                        var simulatedStatus = await SimulatePaymentGateway();
-                        payment.Status = simulatedStatus;
-                        if (simulatedStatus == PaymentStatus.Completed)
-                        {
-                            payment.TransactionId = GenerateTransactionId();
-                            order.OrderStatus = OrderStatus.Processing;
-                            await _paymentRepository.UpdateOrderAsync(order);
-                        }
-                    }
-                    else
-                    {
-                        order.OrderStatus = OrderStatus.Processing;
-                        await _paymentRepository.UpdateOrderAsync(order);
-                    }
-
-                    await _paymentRepository.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    if (order.OrderStatus == OrderStatus.Processing)
-                    {
-                        await _emailHelper.SendOrderConfirmationEmailAsync(paymentRequest.OrderId);
-                    }
-
-                    var paymentResponse = new PaymentResponseDTO
-                    {
-                        PaymentId = payment.Id,
-                        OrderId = payment.OrderId,
-                        PaymentMethod = payment.PaymentMethod,
-                        TransactionId = payment.TransactionId,
-                        Amount = payment.Amount,
-                        PaymentDate = payment.PaymentDate,
-                        Status = payment.Status
+                        OrderId = paymentRequest.OrderId,
+                        PaymentMethod = paymentRequest.PaymentMethod,
+                        Amount = paymentRequest.Amount,
+                        PaymentDate = DateTime.UtcNow,
+                        Status = PaymentStatus.Pending
                     };
 
-                    return new ApiResponse<PaymentResponseDTO>(200, paymentResponse);
+                    await _unitOfWork.Payments.CreatePaymentAsync(payment);
                 }
-                catch (Exception)
+
+                if (!IsCashOnDelivery(paymentRequest.PaymentMethod))
                 {
-                    await transaction.RollbackAsync();
-                    return new ApiResponse<PaymentResponseDTO>(500, "An unexpected error occurred while processing the payment.");
+                    var simulatedStatus = await SimulatePaymentGateway();
+                    payment.Status = simulatedStatus;
+                    if (simulatedStatus == PaymentStatus.Completed)
+                    {
+                        payment.TransactionId = GenerateTransactionId();
+                        order.OrderStatus = OrderStatus.Processing;
+                        await _unitOfWork.Payments.UpdateOrderAsync(order);
+                    }
                 }
+                else
+                {
+                    order.OrderStatus = OrderStatus.Processing;
+                    await _unitOfWork.Payments.UpdateOrderAsync(order);
+                }
+
+                await _unitOfWork.Payments.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+
+                if (order.OrderStatus == OrderStatus.Processing)
+                {
+                    await _emailHelper.SendOrderConfirmationEmailAsync(paymentRequest.OrderId);
+                }
+
+                var paymentResponse = new PaymentResponseDTO
+                {
+                    PaymentId = payment.Id,
+                    OrderId = payment.OrderId,
+                    PaymentMethod = payment.PaymentMethod,
+                    TransactionId = payment.TransactionId,
+                    Amount = payment.Amount,
+                    PaymentDate = payment.PaymentDate,
+                    Status = payment.Status
+                };
+
+                return new ApiResponse<PaymentResponseDTO>(200, paymentResponse);
+            }
+            catch (Exception)
+            {
+                await _unitOfWork.RollbackAsync();
+                return new ApiResponse<PaymentResponseDTO>(500, "An unexpected error occurred while processing the payment.");
             }
         }
 
@@ -125,7 +123,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var payment = await _paymentRepository.GetPaymentByIdAsync(paymentId);
+                var payment = await _unitOfWork.Payments.GetPaymentByIdAsync(paymentId);
 
                 if (payment == null)
                 {
@@ -155,7 +153,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var payment = await _paymentRepository.GetPaymentByOrderIdAsync(orderId);
+                var payment = await _unitOfWork.Payments.GetPaymentByOrderIdAsync(orderId);
 
                 if (payment == null)
                 {
@@ -185,7 +183,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var payment = await _paymentRepository.GetPaymentWithOrderAsync(statusUpdate.PaymentId);
+                var payment = await _unitOfWork.Payments.GetPaymentWithOrderAsync(statusUpdate.PaymentId);
 
                 if (payment == null)
                 {
@@ -199,12 +197,12 @@ namespace E_Commerce.Api.Services
                     payment.Order.OrderStatus = OrderStatus.Processing;
                 }
 
-                await _paymentRepository.UpdatePaymentAsync(payment);
+                await _unitOfWork.Payments.UpdatePaymentAsync(payment);
                 if (payment.Order != null)
                 {
-                    await _paymentRepository.UpdateOrderAsync(payment.Order);
+                    await _unitOfWork.Payments.UpdateOrderAsync(payment.Order);
                 }
-                await _paymentRepository.SaveChangesAsync();
+                await _unitOfWork.Payments.SaveChangesAsync();
 
                 if (payment.Order?.OrderStatus == OrderStatus.Processing)
                 {
@@ -226,52 +224,50 @@ namespace E_Commerce.Api.Services
 
         public async Task<ApiResponse<ConfirmationResponseDTO>> CompleteCODPaymentAsync(CODPaymentUpdateDTO codPaymentUpdateDTO)
         {
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                try
+                var payment = await _unitOfWork.Payments.GetPaymentWithOrderByOrderIdAsync(codPaymentUpdateDTO.PaymentId, codPaymentUpdateDTO.OrderId);
+
+                if (payment == null)
                 {
-                    var payment = await _paymentRepository.GetPaymentWithOrderByOrderIdAsync(codPaymentUpdateDTO.PaymentId, codPaymentUpdateDTO.OrderId);
-
-                    if (payment == null)
-                    {
-                        return new ApiResponse<ConfirmationResponseDTO>(404, "Payment not found.");
-                    }
-
-                    if (payment.Order == null)
-                    {
-                        return new ApiResponse<ConfirmationResponseDTO>(404, "No Order associated with this Payment.");
-                    }
-
-                    if (payment.Order.OrderStatus != OrderStatus.Shipped)
-                    {
-                        return new ApiResponse<ConfirmationResponseDTO>(400, $"Order cannot be marked as Delivered from {payment.Order.OrderStatus} State");
-                    }
-
-                    if (!IsCashOnDelivery(payment.PaymentMethod))
-                    {
-                        return new ApiResponse<ConfirmationResponseDTO>(409, "Payment method is not Cash on Delivery.");
-                    }
-
-                    payment.Status = PaymentStatus.Completed;
-                    payment.Order.OrderStatus = OrderStatus.Delivered;
-
-                    await _paymentRepository.UpdatePaymentAsync(payment);
-                    await _paymentRepository.UpdateOrderAsync(payment.Order);
-                    await _paymentRepository.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    var confirmation = new ConfirmationResponseDTO
-                    {
-                        Message = $"COD Payment for Order ID {payment.Order.Id} has been marked as 'Completed' and the order status updated to 'Delivered'."
-                    };
-
-                    return new ApiResponse<ConfirmationResponseDTO>(200, confirmation);
+                    return new ApiResponse<ConfirmationResponseDTO>(404, "Payment not found.");
                 }
-                catch (Exception)
+
+                if (payment.Order == null)
                 {
-                    await transaction.RollbackAsync();
-                    return new ApiResponse<ConfirmationResponseDTO>(500, "An unexpected error occurred while completing the COD payment.");
+                    return new ApiResponse<ConfirmationResponseDTO>(404, "No Order associated with this Payment.");
                 }
+
+                if (payment.Order.OrderStatus != OrderStatus.Shipped)
+                {
+                    return new ApiResponse<ConfirmationResponseDTO>(400, $"Order cannot be marked as Delivered from {payment.Order.OrderStatus} State");
+                }
+
+                if (!IsCashOnDelivery(payment.PaymentMethod))
+                {
+                    return new ApiResponse<ConfirmationResponseDTO>(409, "Payment method is not Cash on Delivery.");
+                }
+
+                payment.Status = PaymentStatus.Completed;
+                payment.Order.OrderStatus = OrderStatus.Delivered;
+
+                await _unitOfWork.Payments.UpdatePaymentAsync(payment);
+                await _unitOfWork.Payments.UpdateOrderAsync(payment.Order);
+                await _unitOfWork.Payments.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+
+                var confirmation = new ConfirmationResponseDTO
+                {
+                    Message = $"COD Payment for Order ID {payment.Order.Id} has been marked as 'Completed' and the order status updated to 'Delivered'."
+                };
+
+                return new ApiResponse<ConfirmationResponseDTO>(200, confirmation);
+            }
+            catch (Exception)
+            {
+                await _unitOfWork.RollbackAsync();
+                return new ApiResponse<ConfirmationResponseDTO>(500, "An unexpected error occurred while completing the COD payment.");
             }
         }
 
@@ -301,6 +297,6 @@ namespace E_Commerce.Api.Services
             return $"TXN-{Guid.NewGuid().ToString("N").ToUpper().Substring(0, 12)}";
         }
 
-        #endregion
+        #endregion Helper Methods
     }
 }

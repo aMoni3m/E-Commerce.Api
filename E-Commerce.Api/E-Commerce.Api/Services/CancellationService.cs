@@ -11,14 +11,12 @@ namespace E_Commerce.Api.Services
 {
     public class CancellationService : ICancellationService
     {
-        private readonly ApplicationDbContext _context;
-        private readonly ICancellationRepository _cancellationRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly CancellationEmailHelper _emailHelper;
 
-        public CancellationService(ApplicationDbContext context, ICancellationRepository cancellationRepository, IEmailService emailService)
+        public CancellationService(IUnitOfWork unitOfWork, IEmailService emailService)
         {
-            _context = context;
-            _cancellationRepository = cancellationRepository;
+            _unitOfWork = unitOfWork;
             _emailHelper = new CancellationEmailHelper(emailService);
         }
 
@@ -26,7 +24,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var order = await _cancellationRepository.GetOrderForCancellationAsync(cancellationRequest.OrderId, cancellationRequest.CustomerId);
+                var order = await _unitOfWork.Cancellations.GetOrderForCancellationAsync(cancellationRequest.OrderId, cancellationRequest.CustomerId);
 
                 if (order == null)
                 {
@@ -38,7 +36,7 @@ namespace E_Commerce.Api.Services
                     return new ApiResponse<CancellationResponseDTO>(400, "Order is not eligible for cancellation.");
                 }
 
-                var existingCancellation = await _cancellationRepository.GetCancellationByOrderIdAsync(cancellationRequest.OrderId);
+                var existingCancellation = await _unitOfWork.Cancellations.GetCancellationByOrderIdAsync(cancellationRequest.OrderId);
 
                 if (existingCancellation != null)
                 {
@@ -55,8 +53,8 @@ namespace E_Commerce.Api.Services
                     CancellationCharges = 0.00m
                 };
 
-                await _cancellationRepository.CreateCancellationAsync(cancellation);
-                await _cancellationRepository.SaveChangesAsync();
+                await _unitOfWork.Cancellations.CreateCancellationAsync(cancellation);
+                await _unitOfWork.SaveChangesAsync();
 
                 var cancellationResponse = new CancellationResponseDTO
                 {
@@ -81,7 +79,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var cancellation = await _cancellationRepository.GetCancellationByIdAsync(id);
+                var cancellation = await _unitOfWork.Cancellations.GetCancellationByIdAsync(id);
 
                 if (cancellation == null)
                 {
@@ -112,70 +110,68 @@ namespace E_Commerce.Api.Services
 
         public async Task<ApiResponse<ConfirmationResponseDTO>> UpdateCancellationStatusAsync(CancellationStatusUpdateDTO statusUpdate)
         {
-            using (var transaction = await _context.Database.BeginTransactionAsync())
+            await _unitOfWork.BeginTransactionAsync();
+            try
             {
-                try
+                var cancellation = await _unitOfWork.Cancellations.GetCancellationWithOrderAndCustomerAsync(statusUpdate.CancellationId);
+
+                if (cancellation == null)
                 {
-                    var cancellation = await _cancellationRepository.GetCancellationWithOrderAndCustomerAsync(statusUpdate.CancellationId);
-
-                    if (cancellation == null)
-                    {
-                        return new ApiResponse<ConfirmationResponseDTO>(404, "Cancellation request not found.");
-                    }
-
-                    if (cancellation.Status != CancellationStatus.Pending)
-                    {
-                        return new ApiResponse<ConfirmationResponseDTO>(400, "Only pending cancellation requests can be updated.");
-                    }
-
-                    cancellation.Status = statusUpdate.Status;
-                    cancellation.ProcessedAt = DateTime.UtcNow;
-                    cancellation.ProcessedBy = statusUpdate.ProcessedBy;
-                    cancellation.Remarks = statusUpdate.Remarks;
-
-                    if (statusUpdate.Status == CancellationStatus.Approved)
-                    {
-                        cancellation.Order.OrderStatus = OrderStatus.Canceled;
-                        cancellation.CancellationCharges = statusUpdate.CancellationCharges;
-
-                        var orderItems = await _cancellationRepository.GetOrderItemsWithProductByOrderIdAsync(cancellation.OrderId);
-
-                        foreach (var item in orderItems)
-                        {
-                            item.Product.StockQuantity += item.Quantity;
-                            await _cancellationRepository.UpdateProductAsync(item.Product);
-                        }
-                    }
-
-                    await _cancellationRepository.UpdateCancellationAsync(cancellation);
-                    if (cancellation.Order != null)
-                    {
-                        await _cancellationRepository.UpdateOrderAsync(cancellation.Order);
-                    }
-                    await _cancellationRepository.SaveChangesAsync();
-                    await transaction.CommitAsync();
-
-                    if (statusUpdate.Status == CancellationStatus.Approved)
-                    {
-                        await _emailHelper.NotifyCancellationAcceptedAsync(cancellation);
-                    }
-                    else if (statusUpdate.Status == CancellationStatus.Rejected)
-                    {
-                        await _emailHelper.NotifyCancellationRejectionAsync(cancellation);
-                    }
-
-                    var confirmation = new ConfirmationResponseDTO
-                    {
-                        Message = $"Cancellation request with ID {cancellation.Id} has been {cancellation.Status}."
-                    };
-
-                    return new ApiResponse<ConfirmationResponseDTO>(200, confirmation);
+                    return new ApiResponse<ConfirmationResponseDTO>(404, "Cancellation request not found.");
                 }
-                catch (Exception ex)
+
+                if (cancellation.Status != CancellationStatus.Pending)
                 {
-                    await transaction.RollbackAsync();
-                    return new ApiResponse<ConfirmationResponseDTO>(500, $"An unexpected error occurred: {ex.Message}");
+                    return new ApiResponse<ConfirmationResponseDTO>(400, "Only pending cancellation requests can be updated.");
                 }
+
+                cancellation.Status = statusUpdate.Status;
+                cancellation.ProcessedAt = DateTime.UtcNow;
+                cancellation.ProcessedBy = statusUpdate.ProcessedBy;
+                cancellation.Remarks = statusUpdate.Remarks;
+
+                if (statusUpdate.Status == CancellationStatus.Approved)
+                {
+                    cancellation.Order.OrderStatus = OrderStatus.Canceled;
+                    cancellation.CancellationCharges = statusUpdate.CancellationCharges;
+
+                    var orderItems = await _unitOfWork.Cancellations.GetOrderItemsWithProductByOrderIdAsync(cancellation.OrderId);
+
+                    foreach (var item in orderItems)
+                    {
+                        item.Product.StockQuantity += item.Quantity;
+                        _unitOfWork.Cancellations.UpdateProductAsync(item.Product);
+                    }
+                }
+
+                _unitOfWork.Cancellations.UpdateCancellationAsync(cancellation);
+                if (cancellation.Order != null)
+                {
+                    _unitOfWork.Cancellations.UpdateOrderAsync(cancellation.Order);
+                }
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitAsync();
+
+                if (statusUpdate.Status == CancellationStatus.Approved)
+                {
+                    await _emailHelper.NotifyCancellationAcceptedAsync(cancellation);
+                }
+                else if (statusUpdate.Status == CancellationStatus.Rejected)
+                {
+                    await _emailHelper.NotifyCancellationRejectionAsync(cancellation);
+                }
+
+                var confirmation = new ConfirmationResponseDTO
+                {
+                    Message = $"Cancellation request with ID {cancellation.Id} has been {cancellation.Status}."
+                };
+
+                return new ApiResponse<ConfirmationResponseDTO>(200, confirmation);
+            }
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                return new ApiResponse<ConfirmationResponseDTO>(500, $"An unexpected error occurred: {ex.Message}");
             }
         }
 
@@ -183,7 +179,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var cancellations = await _cancellationRepository.GetAllCancellationsWithOrderAsync();
+                var cancellations = await _unitOfWork.Cancellations.GetAllCancellationsWithOrderAsync();
 
                 var cancellationList = cancellations.Select(c => new CancellationResponseDTO
                 {

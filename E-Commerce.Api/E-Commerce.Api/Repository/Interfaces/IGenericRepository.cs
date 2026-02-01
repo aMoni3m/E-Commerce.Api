@@ -11,7 +11,5 @@ namespace E_Commerce.Api.Repository.Interfaces
         Task<List<T>> GetAllAsync();
 
         void Delete(T Adrress);
-
-        Task SaveAsync();
     }
 }

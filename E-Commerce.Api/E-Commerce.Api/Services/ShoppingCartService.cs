@@ -9,12 +9,12 @@ namespace E_Commerce.Api.Services
 {
     public class ShoppingCartService : IShoppingCartService
     {
-        private readonly IShoppingCartRepository _shoppingCartRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public ShoppingCartService(IShoppingCartRepository shoppingCartRepository, IMapper mapper)
+        public ShoppingCartService(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _shoppingCartRepository = shoppingCartRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
@@ -22,7 +22,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var cart = await _shoppingCartRepository.GetActiveCartByCustomerIdAsync(customerId);
+                var cart = await _unitOfWork.ShoppingCarts.GetActiveCartByCustomerIdAsync(customerId);
 
                 if (cart == null)
                 {
@@ -54,7 +54,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var product = await _shoppingCartRepository.GetProductByIdAsync(addToCartDTO.ProductId);
+                var product = await _unitOfWork.ShoppingCarts.GetProductByIdAsync(addToCartDTO.ProductId);
                 if (product == null)
                 {
                     return new ApiResponse<CartResponseDTO>(404, "Product not found.");
@@ -65,7 +65,7 @@ namespace E_Commerce.Api.Services
                     return new ApiResponse<CartResponseDTO>(400, $"Only {product.StockQuantity} units of {product.Name} are available.");
                 }
 
-                var cart = await _shoppingCartRepository.GetActiveCartByCustomerIdAsync(addToCartDTO.CustomerId);
+                var cart = await _unitOfWork.ShoppingCarts.GetActiveCartByCustomerIdAsync(addToCartDTO.CustomerId);
 
                 if (cart == null)
                 {
@@ -78,10 +78,10 @@ namespace E_Commerce.Api.Services
                         CartItems = new List<CartItem>()
                     };
 
-                    await _shoppingCartRepository.CreateCartAsync(cart);
+                    await _unitOfWork.ShoppingCarts.CreateCartAsync(cart);
                 }
 
-                var existingCartItem = await _shoppingCartRepository.GetCartItemByCartIdAndProductIdAsync(cart.Id, addToCartDTO.ProductId);
+                var existingCartItem = await _unitOfWork.ShoppingCarts.GetCartItemByCartIdAndProductIdAsync(cart.Id, addToCartDTO.ProductId);
 
                 if (existingCartItem != null)
                 {
@@ -94,7 +94,7 @@ namespace E_Commerce.Api.Services
                     existingCartItem.TotalPrice = (existingCartItem.UnitPrice - existingCartItem.Discount) * existingCartItem.Quantity;
                     existingCartItem.UpdatedAt = DateTime.UtcNow;
 
-                    await _shoppingCartRepository.UpdateCartItemAsync(existingCartItem);
+                    await _unitOfWork.ShoppingCarts.UpdateCartItemAsync(existingCartItem);
                 }
                 else
                 {
@@ -112,13 +112,13 @@ namespace E_Commerce.Api.Services
                         UpdatedAt = DateTime.UtcNow
                     };
 
-                    await _shoppingCartRepository.CreateCartItemAsync(cartItem);
+                    await _unitOfWork.ShoppingCarts.CreateCartItemAsync(cartItem);
                 }
 
                 cart.UpdatedAt = DateTime.UtcNow;
-                await _shoppingCartRepository.UpdateCartAsync(cart);
+                await _unitOfWork.ShoppingCarts.UpdateCartAsync(cart);
 
-                cart = await _shoppingCartRepository.GetCartByIdAsync(cart.Id) ?? new Cart();
+                cart = await _unitOfWork.ShoppingCarts.GetCartByIdAsync(cart.Id) ?? new Cart();
 
                 var cartDTO = _mapper.Map<CartResponseDTO>(cart);
                 return new ApiResponse<CartResponseDTO>(200, cartDTO);
@@ -133,13 +133,13 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var cart = await _shoppingCartRepository.GetActiveCartByCustomerIdAsync(updateCartItemDTO.CustomerId);
+                var cart = await _unitOfWork.ShoppingCarts.GetActiveCartByCustomerIdAsync(updateCartItemDTO.CustomerId);
                 if (cart == null)
                 {
                     return new ApiResponse<CartResponseDTO>(404, "Active cart not found.");
                 }
 
-                var cartItem = await _shoppingCartRepository.GetCartItemByIdAsync(updateCartItemDTO.CartItemId);
+                var cartItem = await _unitOfWork.ShoppingCarts.GetCartItemByIdAsync(updateCartItemDTO.CartItemId);
                 if (cartItem == null)
                 {
                     return new ApiResponse<CartResponseDTO>(404, "Cart item not found.");
@@ -159,12 +159,12 @@ namespace E_Commerce.Api.Services
                 cartItem.TotalPrice = (cartItem.UnitPrice - cartItem.Discount) * cartItem.Quantity;
                 cartItem.UpdatedAt = DateTime.UtcNow;
 
-                await _shoppingCartRepository.UpdateCartItemAsync(cartItem);
+                await _unitOfWork.ShoppingCarts.UpdateCartItemAsync(cartItem);
 
                 cart.UpdatedAt = DateTime.UtcNow;
-                await _shoppingCartRepository.UpdateCartAsync(cart);
+                await _unitOfWork.ShoppingCarts.UpdateCartAsync(cart);
 
-                cart = await _shoppingCartRepository.GetCartByIdAsync(cart.Id) ?? new Cart();
+                cart = await _unitOfWork.ShoppingCarts.GetCartByIdAsync(cart.Id) ?? new Cart();
 
                 var cartDTO = _mapper.Map<CartResponseDTO>(cart);
                 return new ApiResponse<CartResponseDTO>(200, cartDTO);
@@ -179,24 +179,24 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var cart = await _shoppingCartRepository.GetActiveCartByCustomerIdAsync(removeCartItemDTO.CustomerId);
+                var cart = await _unitOfWork.ShoppingCarts.GetActiveCartByCustomerIdAsync(removeCartItemDTO.CustomerId);
                 if (cart == null)
                 {
                     return new ApiResponse<CartResponseDTO>(404, "Active cart not found.");
                 }
 
-                var cartItem = await _shoppingCartRepository.GetCartItemByIdAsync(removeCartItemDTO.CartItemId);
+                var cartItem = await _unitOfWork.ShoppingCarts.GetCartItemByIdAsync(removeCartItemDTO.CartItemId);
                 if (cartItem == null)
                 {
                     return new ApiResponse<CartResponseDTO>(404, "Cart item not found.");
                 }
 
-                await _shoppingCartRepository.DeleteCartItemAsync(cartItem);
+                await _unitOfWork.ShoppingCarts.DeleteCartItemAsync(cartItem);
 
                 cart.UpdatedAt = DateTime.UtcNow;
-                await _shoppingCartRepository.UpdateCartAsync(cart);
+                await _unitOfWork.ShoppingCarts.UpdateCartAsync(cart);
 
-                cart = await _shoppingCartRepository.GetCartByIdAsync(cart.Id) ?? new Cart();
+                cart = await _unitOfWork.ShoppingCarts.GetCartByIdAsync(cart.Id) ?? new Cart();
 
                 var cartDTO = _mapper.Map<CartResponseDTO>(cart);
                 return new ApiResponse<CartResponseDTO>(200, cartDTO);
@@ -211,7 +211,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var cart = await _shoppingCartRepository.GetActiveCartByCustomerIdAsync(customerId);
+                var cart = await _unitOfWork.ShoppingCarts.GetActiveCartByCustomerIdAsync(customerId);
                 if (cart == null)
                 {
                     return new ApiResponse<ConfirmationResponseDTO>(404, "Active cart not found.");
@@ -219,10 +219,10 @@ namespace E_Commerce.Api.Services
 
                 if (cart.CartItems != null && cart.CartItems.Any())
                 {
-                    await _shoppingCartRepository.DeleteCartItemsRangeAsync(cart.CartItems.ToList());
+                    await _unitOfWork.ShoppingCarts.DeleteCartItemsRangeAsync(cart.CartItems.ToList());
 
                     cart.UpdatedAt = DateTime.UtcNow;
-                    await _shoppingCartRepository.UpdateCartAsync(cart);
+                    await _unitOfWork.ShoppingCarts.UpdateCartAsync(cart);
                 }
 
                 var confirmation = new ConfirmationResponseDTO
@@ -237,6 +237,5 @@ namespace E_Commerce.Api.Services
                 return new ApiResponse<ConfirmationResponseDTO>(500, $"An unexpected error occurred while processing your request, Error: {ex.Message}");
             }
         }
-
     }
 }

@@ -55,33 +55,18 @@ namespace E_Commerce.Api
             builder.Services.AddDbContext<ApplicationDbContext>(option =>
             option.UseSqlServer(DefualtConnection));
 
-            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
             builder.Services.AddScoped<IAddressService, AddressService>();
-            builder.Services.AddScoped<IAddressRepository, AddressRepository>();
-
             builder.Services.AddScoped<ICategoryService, CategoryService>();
-            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-
-            builder.Services.AddScoped<IProductRepository, ProductRepository>();
             builder.Services.AddScoped<IProductService, ProductService>();
-
-            builder.Services.AddScoped<IOrderRepository, OrderRepository>();
             builder.Services.AddScoped<IOrderService, OrderService>();
-
-            builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
             builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
-
-            builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
-
-            builder.Services.AddScoped<ICancellationRepository, CancellationRepository>();
             builder.Services.AddScoped<ICancellationService, CancellationService>();
-
-            builder.Services.AddScoped<IRefundRepository, RefundRepository>();
             builder.Services.AddScoped<IRefundService, RefundService>();
 
             builder.Services.AddScoped<IEmailService, EmailServer>();

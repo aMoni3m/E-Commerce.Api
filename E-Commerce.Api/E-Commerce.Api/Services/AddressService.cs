@@ -11,13 +11,13 @@ namespace E_Commerce.Api.Services
 {
     public class AddressService : IAddressService
     {
-        private readonly IAddressRepository _addressRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ICustomerRepository _customerRepository;
         private readonly IMapper _mapper;
 
-        public AddressService(IAddressRepository addressRepository, ICustomerRepository customerRepository, IMapper mapper)
+        public AddressService(IUnitOfWork unitOfWork, ICustomerRepository customerRepository, IMapper mapper)
         {
-            _addressRepository = addressRepository;
+            _unitOfWork = unitOfWork;
             _customerRepository = customerRepository;
             _mapper = mapper;
         }
@@ -26,7 +26,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                List<Address> addresses = await _addressRepository.GetAllAsync();
+                List<Address> addresses = await _unitOfWork.Addresss.GetAllAsync();
 
                 if (addresses == null) return new ApiResponse<List<AddressResponseDTO>>(400, "");
 
@@ -51,8 +51,8 @@ namespace E_Commerce.Api.Services
 
                 Address address = _mapper.Map<Address>(addressCreateDTO);
 
-                await _addressRepository.CreateAsync(address);
-                await _addressRepository.SaveAsync();
+                await _unitOfWork.Addresss.CreateAsync(address);
+                await _unitOfWork.SaveChangesAsync();
                 AddressResponseDTO addressResponseDTO = _mapper.Map<AddressResponseDTO>(address);
                 return new ApiResponse<AddressResponseDTO>(201, addressResponseDTO);
             }
@@ -67,12 +67,12 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                Address address = await _addressRepository.GetAddressByIdAsync(addressDeleteDTO.CustomerId, addressDeleteDTO.AddressId);
+                Address address = await _unitOfWork.Addresss.GetAddressByIdAsync(addressDeleteDTO.CustomerId, addressDeleteDTO.AddressId);
                 if (address == null)
                     return new ApiResponse<ConfirmationResponseDTO>(400, "Address not Found");
 
-                _addressRepository.Delete(address);
-                await _addressRepository.SaveAsync();
+                _unitOfWork.Addresss.Delete(address);
+                await _unitOfWork.SaveChangesAsync();
                 var confirmationMessage = new ConfirmationResponseDTO
                 {
                     Message = $"Address with Id {addressDeleteDTO.AddressId} deleted successfully."
@@ -91,14 +91,14 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                Address address = await _addressRepository.GetAddressByIdAsync(addressUpdateDTO.CustomerId, addressUpdateDTO.Id);
+                Address address = await _unitOfWork.Addresss.GetAddressByIdAsync(addressUpdateDTO.CustomerId, addressUpdateDTO.Id);
                 if (address == null)
                     return new ApiResponse<ConfirmationResponseDTO>(400, "Customer or Address not found");
 
                 _mapper.Map(addressUpdateDTO, address);
 
-                _addressRepository.Update(address);
-                await _addressRepository.SaveAsync();
+                _unitOfWork.Addresss.Update(address);
+                await _unitOfWork.SaveChangesAsync();
                 var confirmationMessage = new ConfirmationResponseDTO
                 {
                     Message = $"Address with Id {addressUpdateDTO.Id} updated successfully."

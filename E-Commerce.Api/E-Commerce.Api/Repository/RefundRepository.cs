@@ -74,21 +74,14 @@ namespace E_Commerce.Api.Repository
                 .ToListAsync();
         }
 
-        public async Task UpdateRefundAsync(Refund refund)
+        public void UpdateRefundAsync(Refund refund)
         {
             _context.Refunds.Update(refund);
-            await Task.CompletedTask;
         }
 
-        public async Task UpdatePaymentAsync(Payment payment)
+        public void UpdatePaymentAsync(Payment payment)
         {
             _context.Payments.Update(payment);
-            await Task.CompletedTask;
-        }
-
-        public async Task SaveChangesAsync()
-        {
-            await _context.SaveChangesAsync();
         }
     }
 }
