@@ -27,8 +27,8 @@ namespace E_Commerce.Api.Services
                     return new ApiResponse<CategoryResponseDTO>(400, "Category already exist");
 
                 Category category = _mapper.Map<Category>(categoryCreateDTO);
-                await _categoryRepository.CreateCategoryAsync(category);
-
+                await _categoryRepository.CreateAsync(category);
+                await _categoryRepository.SaveAsync();
                 CategoryResponseDTO categoryResponseDTO = _mapper.Map<CategoryResponseDTO>(category);
                 return new ApiResponse<CategoryResponseDTO>(201, categoryResponseDTO);
             }
@@ -46,7 +46,8 @@ namespace E_Commerce.Api.Services
                 Category category = await _categoryRepository.GetCategoryByIdAsync(id);
                 if (category == null)
                     return new ApiResponse<ConfirmationResponseDTO>(400, "Category not found");
-                await _categoryRepository.DeleteCategoryAsync(category);
+                _categoryRepository.Delete(category);
+                await _categoryRepository.SaveAsync();
 
                 return new ApiResponse<ConfirmationResponseDTO>(204, "");
             }
@@ -61,7 +62,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                List<Category> categories = await _categoryRepository.GetCategoriesAsync();
+                List<Category> categories = await _categoryRepository.GetAllAsync();
                 if (categories == null)
                     return new ApiResponse<List<CategoryResponseDTO>>(400, "categories not found");
 
@@ -105,7 +106,8 @@ namespace E_Commerce.Api.Services
                 if (category == null)
                     return new ApiResponse<ConfirmationResponseDTO>(400, "Category not found");
                 _mapper.Map(categoryUpdateDTO, category);
-                await _categoryRepository.UpdateCategoryAsync(category);
+                _categoryRepository.Update(category);
+                await _categoryRepository.SaveAsync();
                 var confirmationMessage = new ConfirmationResponseDTO
                 {
                     Message = $"Address with Id {categoryUpdateDTO.Id} updated successfully."

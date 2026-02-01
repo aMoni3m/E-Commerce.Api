@@ -3,16 +3,8 @@ using E_Commerce.Api.Models;
 
 namespace E_Commerce.Api.Repository.Interfaces
 {
-    public interface IAddressRepository
+    public interface IAddressRepository : IGenericRepository<Address>
     {
-        Task CreateAddressAsync(Address address);
-
-        Task UpdateAddressAsync(Address address);
-
         Task<Address> GetAddressByIdAsync(int customerId, int addressId);
-
-        Task<List<Address>> GetAllAddressesAsync();
-
-        Task DeleteAddressAsync(Address Adrress);
     }
 }

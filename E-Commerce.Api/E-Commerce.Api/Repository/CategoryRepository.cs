@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Commerce.Api.Repository
 {
-    public class CategoryRepository : ICategoryRepository
+    public class CategoryRepository : GenericRepository<Category>, ICategoryRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public CategoryRepository(ApplicationDbContext context)
+        public CategoryRepository(ApplicationDbContext context) : base(context)
         {
             _context = context;
         }
@@ -19,34 +19,10 @@ namespace E_Commerce.Api.Repository
             return await _context.Categories.AnyAsync(c => c.Name.ToLower() == categoryName.ToLower());
         }
 
-        public async Task CreateCategoryAsync(Category category)
-        {
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task DeleteCategoryAsync(Category category)
-        {
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<List<Category>> GetCategoriesAsync()
-        {
-            List<Category> categories = await _context.Categories.ToListAsync();
-            return categories;
-        }
-
         public async Task<Category> GetCategoryByIdAsync(int id)
         {
             Category category = await _context.Categories.FindAsync(id);
             return category;
-        }
-
-        public async Task UpdateCategoryAsync(Category category)
-        {
-            _context.Categories.Update(category);
-            await _context.SaveChangesAsync();
         }
     }
 }

@@ -2,18 +2,10 @@
 
 namespace E_Commerce.Api.Repository.Interfaces
 {
-    public interface ICategoryRepository
+    public interface ICategoryRepository : IGenericRepository<Category>
     {
         Task<bool> CategoryIsExistAsync(string categoryName);
 
-        Task CreateCategoryAsync(Category category);
-
         Task<Category> GetCategoryByIdAsync(int id);
-
-        Task UpdateCategoryAsync(Category category);
-
-        Task<List<Category>> GetCategoriesAsync();
-
-        Task DeleteCategoryAsync(Category category);
     }
 }

@@ -55,6 +55,8 @@ namespace E_Commerce.Api
             builder.Services.AddDbContext<ApplicationDbContext>(option =>
             option.UseSqlServer(DefualtConnection));
 
+            builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 

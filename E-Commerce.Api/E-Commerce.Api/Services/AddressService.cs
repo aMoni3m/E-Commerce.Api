@@ -26,7 +26,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                List<Address> addresses = await _addressRepository.GetAllAddressesAsync();
+                List<Address> addresses = await _addressRepository.GetAllAsync();
 
                 if (addresses == null) return new ApiResponse<List<AddressResponseDTO>>(400, "");
 
@@ -51,8 +51,8 @@ namespace E_Commerce.Api.Services
 
                 Address address = _mapper.Map<Address>(addressCreateDTO);
 
-                await _addressRepository.CreateAddressAsync(address);
-
+                await _addressRepository.CreateAsync(address);
+                await _addressRepository.SaveAsync();
                 AddressResponseDTO addressResponseDTO = _mapper.Map<AddressResponseDTO>(address);
                 return new ApiResponse<AddressResponseDTO>(201, addressResponseDTO);
             }
@@ -71,7 +71,8 @@ namespace E_Commerce.Api.Services
                 if (address == null)
                     return new ApiResponse<ConfirmationResponseDTO>(400, "Address not Found");
 
-                await _addressRepository.DeleteAddressAsync(address);
+                _addressRepository.Delete(address);
+                await _addressRepository.SaveAsync();
                 var confirmationMessage = new ConfirmationResponseDTO
                 {
                     Message = $"Address with Id {addressDeleteDTO.AddressId} deleted successfully."
@@ -96,7 +97,8 @@ namespace E_Commerce.Api.Services
 
                 _mapper.Map(addressUpdateDTO, address);
 
-                await _addressRepository.UpdateAddressAsync(address);
+                _addressRepository.Update(address);
+                await _addressRepository.SaveAsync();
                 var confirmationMessage = new ConfirmationResponseDTO
                 {
                     Message = $"Address with Id {addressUpdateDTO.Id} updated successfully."

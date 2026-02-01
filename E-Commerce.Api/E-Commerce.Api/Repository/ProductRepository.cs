@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace E_Commerce.Api.Repository
 {
-    public class ProductRepository : IProductRepository
+    public class ProductRepository : GenericRepository<Product>, IProductRepository
     {
         private readonly ApplicationDbContext _context;
 
-        public ProductRepository(ApplicationDbContext context)
+        public ProductRepository(ApplicationDbContext context) : base(context)
         {
             _context = context;
         }
@@ -26,27 +26,10 @@ namespace E_Commerce.Api.Repository
             return await _context.Categories.AnyAsync(c => c.Id == categoryId);
         }
 
-        public async Task CreateProductAsync(Product product)
-        {
-            await _context.Products.AddAsync(product);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdateProductAsync(Product product)
-        {
-            _context.Products.Update(product);
-            await _context.SaveChangesAsync();
-        }
-
         public async Task<Product> GetProductByIdAsync(int id)
         {
             return await _context.Products.AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id);
-        }
-
-        public async Task<List<Product>> GetAllProductsAsync()
-        {
-            return await _context.Products.AsNoTracking().ToListAsync();
         }
 
         public async Task<List<Product>> GetProductsByCategoryAsync(int categoryId)
@@ -55,12 +38,6 @@ namespace E_Commerce.Api.Repository
                 .Where(p => p.CategoryId == categoryId && p.IsAvailable)
                 .AsNoTracking()
                 .ToListAsync();
-        }
-
-        public async Task DeleteProductAsync(Product product)
-        {
-            _context.Products.Remove(product);
-            await _context.SaveChangesAsync();
         }
     }
 }

@@ -35,7 +35,8 @@ namespace E_Commerce.Api.Services
                 Product product = _mapper.Map<Product>(dto);
                 product.IsAvailable = true;
 
-                await _productRepo.CreateProductAsync(product);
+                await _productRepo.CreateAsync(product);
+                await _productRepo.SaveAsync();
 
                 ProductResponseDTO response = _mapper.Map<ProductResponseDTO>(product);
                 return new ApiResponse<ProductResponseDTO>(201, response);
@@ -66,7 +67,7 @@ namespace E_Commerce.Api.Services
         {
             try
             {
-                var products = await _productRepo.GetAllProductsAsync();
+                var products = await _productRepo.GetAllAsync();
                 var result = _mapper.Map<List<ProductResponseDTO>>(products);
 
                 return new ApiResponse<List<ProductResponseDTO>>(200, result);
@@ -118,7 +119,8 @@ namespace E_Commerce.Api.Services
                     return new ApiResponse<ConfirmationResponseDTO>(400, "Category does not exist.");
 
                 _mapper.Map(dto, product);
-                await _productRepo.UpdateProductAsync(product);
+                _productRepo.Update(product);
+                await _productRepo.SaveAsync();
 
                 return new ApiResponse<ConfirmationResponseDTO>(200,
                     new ConfirmationResponseDTO { Message = "Product updated successfully." });
@@ -138,8 +140,8 @@ namespace E_Commerce.Api.Services
                     return new ApiResponse<ConfirmationResponseDTO>(404, "Product not found.");
 
                 product.IsAvailable = dto.IsAvailable;
-                await _productRepo.UpdateProductAsync(product);
-
+                _productRepo.Update(product);
+                await _productRepo.SaveAsync();
                 return new ApiResponse<ConfirmationResponseDTO>(200,
                     new ConfirmationResponseDTO { Message = "Product status updated." });
             }
@@ -158,8 +160,8 @@ namespace E_Commerce.Api.Services
                     return new ApiResponse<ConfirmationResponseDTO>(404, "Product not found.");
 
                 product.IsAvailable = false;
-                await _productRepo.DeleteProductAsync(product);
-
+                _productRepo.Delete(product);
+                await _productRepo.SaveAsync();
                 return new ApiResponse<ConfirmationResponseDTO>(200,
                     new ConfirmationResponseDTO { Message = "Product deleted successfully." });
             }
