@@ -1,12 +1,15 @@
 ﻿using E_Commerce.Api.DTOs.ProductDTOs;
 using E_Commerce.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace E_Commerce.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "ADMIN")]
     public class ProductController : ControllerBase
     {
         private readonly IProductService _productService;
@@ -38,6 +41,8 @@ namespace E_Commerce.Api.Controllers
         }
 
         [HttpGet("Category/{categoryId}")]
+        [AllowAnonymous]
+        [EnableRateLimiting("rateLimit")]
         public async Task<IActionResult> GetProductsByCategory(int categoryId)
         {
             var response = await _productService.GetProductsByCategoryAsync(categoryId);

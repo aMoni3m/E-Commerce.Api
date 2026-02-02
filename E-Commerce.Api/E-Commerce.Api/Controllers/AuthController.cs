@@ -5,6 +5,7 @@ using E_Commerce.Api.DTOs.CustomerDTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -27,7 +28,8 @@ namespace E_Commerce.Api.Controllers
         [AllowAnonymous]
         public IActionResult Login([FromBody] LoginDTO login)
         {
-            var customer = _context.Customers.FirstOrDefault(u =>
+            var customer = _context.Customers
+                .Include(r => r.Roles).FirstOrDefault(u =>
                     u.Email == login.Email);
 
             if (customer == null)
@@ -41,11 +43,16 @@ namespace E_Commerce.Api.Controllers
                 return Unauthorized("invalid password");
             }
 
-            var calims = new List<Claim>()
+            var claims = new List<Claim>()
             {
                 new Claim(ClaimTypes.Name,customer.Email),
                 new Claim("customerId",customer.Id.ToString()),
             };
+            foreach (var r in customer.Roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, r.Name));
+            }
+
             Env.Load();
             var secretKey = Environment.GetEnvironmentVariable("SecretKey");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
@@ -56,7 +63,7 @@ namespace E_Commerce.Api.Controllers
             (
                 issuer: null,
                 audience: null,
-                claims: calims,
+                claims: claims,
                 expires: DateTime.UtcNow.AddMinutes(45),
                 signingCredentials: creds
                 );

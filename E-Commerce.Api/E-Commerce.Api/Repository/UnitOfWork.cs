@@ -26,10 +26,9 @@ namespace E_Commerce.Api.Repository
 
         public IPaymentRepository Payments { get; }
 
-        public UnitOfWork(ApplicationDbContext context, IDbContextTransaction transaction)
+        public UnitOfWork(ApplicationDbContext context)
         {
             _context = context;
-            _transaction = transaction;
             Products = new ProductRepository(context);
             Categorys = new CategoryRepository(context);
             Addresss = new AddressRepository(context);
@@ -90,7 +89,7 @@ namespace E_Commerce.Api.Repository
         {
             _transaction?.Dispose();
 
-            Dispose();
+            _context?.Dispose();
         }
     }
 }

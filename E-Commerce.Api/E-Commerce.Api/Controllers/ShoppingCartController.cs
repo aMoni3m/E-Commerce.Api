@@ -1,11 +1,13 @@
 using E_Commerce.Api.DTOs.ShoppingCartDTOs;
 using E_Commerce.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace E_Commerce.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ShoppingCartController : ControllerBase
     {
         private readonly IShoppingCartService _shoppingCartService;
@@ -51,9 +53,3 @@ namespace E_Commerce.Api.Controllers
         }
     }
 }
-
-
-
-
-
-

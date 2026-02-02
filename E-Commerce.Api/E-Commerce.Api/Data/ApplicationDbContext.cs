@@ -17,6 +17,11 @@ namespace E_Commerce.Api.Data
                 .HasForeignKey(o => o.BillingAddressId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Customer>()
+                .HasMany(c => c.Roles)
+                .WithMany(r => r.Customers)
+                .UsingEntity(j => j.ToTable("CustomerRole"));
+
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.ShippingAddress)
                 .WithMany()
@@ -69,6 +74,13 @@ namespace E_Commerce.Api.Data
                 new Category { Id = 2, Name = "Books", Description = "Books and magazines", IsActive = true }
             );
 
+            modelBuilder.Entity<Role>().HasData(
+
+                new Role { Id = 1, Name = "ADMIN" },
+                new Role { Id = 2, Name = "CUSTOMER" }
+
+                );
+
             modelBuilder.Entity<Product>().HasData(
                 new Product
                 {
@@ -110,6 +122,7 @@ namespace E_Commerce.Api.Data
         }
 
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<Role> Roles { get; set; }
         public DbSet<Address> Addresses { get; set; }
         public DbSet<Status> Statuses { get; set; }
         public DbSet<Category> Categories { get; set; }

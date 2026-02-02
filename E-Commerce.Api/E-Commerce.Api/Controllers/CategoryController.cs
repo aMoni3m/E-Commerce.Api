@@ -2,6 +2,7 @@
 using E_Commerce.Api.DTOs.CategoryDTOs;
 using E_Commerce.Api.Services;
 using E_Commerce.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace E_Commerce.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "ADMIN")]
     public class CategoryController : ControllerBase
     {
         private readonly ICategoryService _categoryService;

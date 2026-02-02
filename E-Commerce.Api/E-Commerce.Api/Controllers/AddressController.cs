@@ -1,5 +1,6 @@
 ﻿using E_Commerce.Api.DTOs.AdressDTOs;
 using E_Commerce.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,6 +8,7 @@ namespace E_Commerce.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class AddressController : ControllerBase
     {
         private readonly IAddressService _addressService;
@@ -17,6 +19,7 @@ namespace E_Commerce.Api.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> AllAddresses()
         {
             var response = await _addressService.AllAddressesAsync();
@@ -25,6 +28,7 @@ namespace E_Commerce.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "ADMIN,CUSTOMER")]
         public async Task<IActionResult> CreateAddress([FromBody] AddressCreateDTO addressCreateDTO)
         {
             var response = await _addressService.CreateAddressAsync(addressCreateDTO);

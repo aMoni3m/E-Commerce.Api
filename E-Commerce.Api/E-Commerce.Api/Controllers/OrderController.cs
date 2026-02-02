@@ -1,11 +1,13 @@
 using E_Commerce.Api.DTOs.OrderDTOs;
 using E_Commerce.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace E_Commerce.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
@@ -58,4 +60,3 @@ namespace E_Commerce.Api.Controllers
         }
     }
 }
-

@@ -46,6 +46,7 @@ namespace E_Commerce.Api.Controllers
         }
 
         [HttpGet("pageSize/{pageSize}/pageNumber/{pageNumber}")]
+        [Authorize(Roles = "ADMIN")]
         public async Task<IActionResult> AllCustomer(int pageSize = 10, int pageNumber = 1)
         {
             var response = await _customerService.AllCustomer(pageSize, pageNumber);

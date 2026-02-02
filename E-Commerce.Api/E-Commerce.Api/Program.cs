@@ -5,6 +5,8 @@ using E_Commerce.Api.Repository.Interfaces;
 using E_Commerce.Api.Services;
 using E_Commerce.Api.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -47,6 +49,16 @@ namespace E_Commerce.Api
     });
             });
 
+            builder.Services.AddRateLimiter(option =>
+            {
+                option.AddFixedWindowLimiter("rateLimit", opt =>
+                {
+                    opt.PermitLimit = 10;
+                    opt.Window = TimeSpan.FromSeconds(10);
+                    opt.QueueLimit = 2;
+                });
+            });
+
             Env.Load();
 
             var DefualtConnection = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
@@ -59,6 +71,7 @@ namespace E_Commerce.Api
 
             builder.Services.AddScoped<ICustomerService, CustomerService>();
             builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+            builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 
             builder.Services.AddScoped<IAddressService, AddressService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -100,6 +113,7 @@ namespace E_Commerce.Api
             app.UseSwaggerUI();
 
             app.UseHttpsRedirection();
+            app.UseRateLimiter();
 
             app.UseAuthentication();
             app.UseAuthorization();

@@ -11,12 +11,14 @@ namespace E_Commerce.Api.Services
     public class CustomerService : ICustomerService
     {
         private readonly ICustomerRepository _customerRepository;
+        private readonly IRoleRepository _roleRepository;
         private readonly IMapper _mapper;
 
-        public CustomerService(ICustomerRepository customerRepository, IMapper mapper)
+        public CustomerService(ICustomerRepository customerRepository, IMapper mapper, IRoleRepository roleRepository)
         {
             _customerRepository = customerRepository;
             _mapper = mapper;
+            _roleRepository = roleRepository;
         }
 
         public async Task<ApiResponse<PaginatedResultDto<CustomerResponseDTO>>> AllCustomer(int pageSize, int pageNumber)
@@ -85,7 +87,9 @@ namespace E_Commerce.Api.Services
                 }
 
                 Customer customer = _mapper.Map<Customer>(customerRegistration);
+                Role role = await _roleRepository.GetRoleByName("CUSTOMER");
 
+                customer.Roles.Add(role);
                 await _customerRepository.Add(customer);
 
                 CustomerResponseDTO customerResponseDTO = _mapper.Map<CustomerResponseDTO>(customer);

@@ -1,11 +1,13 @@
 using E_Commerce.Api.DTOs.CancellationDTOs;
 using E_Commerce.Api.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace E_Commerce.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CancellationController : ControllerBase
     {
         private readonly ICancellationService _cancellationService;
